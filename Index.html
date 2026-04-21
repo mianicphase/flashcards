@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>UPSC Flashcards Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f4f6f8;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      padding: 15px;
+    }
+
+    h2 { text-align: center; }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      font-size: 16px;
+    }
+
+    button {
+      background: #333;
+      color: white;
+      border: none;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      margin: 15px 0;
+      border-radius: 12px;
+      font-size: 20px;
+      text-align: center;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tag {
+      text-align: center;
+      font-size: 12px;
+      color: gray;
+    }
+
+    .row {
+      display: flex;
+      gap: 5px;
+    }
+
+    .row button {
+      flex: 1;
+    }
+
+    @media (max-width: 600px) {
+      .card { font-size: 18px; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <h2>📚 Flashcards Pro</h2>
+
+  <!-- Add Card -->
+  <input id="subject" placeholder="Subject">
+  <input id="chapter" placeholder="Chapter">
+  <input id="question" placeholder="Question">
+  <input id="answer" placeholder="Answer">
+  <button onclick="addCard()">Add Card</button>
+
+  <!-- CSV Import -->
+  <input type="file" id="csvFile" accept=".csv">
+  <button onclick="importCSV()">Import CSV</button>
+
+  <!-- Filters -->
+  <input id="filterSubject" placeholder="Filter Subject">
+  <input id="filterChapter" placeholder="Filter Chapter">
+  <button onclick="applyFilter()">Load Cards</button>
+
+  <!-- Controls -->
+  <div class="row">
+    <button onclick="toggleShuffle()">Shuffle</button>
+    <button onclick="startTimer()">Timed Quiz</button>
+  </div>
+
+  <!-- Card -->
+  <div class="card" onclick="flipCard()" id="card">
+    Load cards to begin
+  </div>
+
+  <div class="tag" id="tag"></div>
+  <div class="tag" id="timer"></div>
+
+  <!-- Navigation -->
+  <div class="row">
+    <button onclick="prevCard()">Prev</button>
+    <button onclick="nextCard()">Next</button>
+  </div>
+
+</div>
+
+<script>
+let cards = JSON.parse(localStorage.getItem("flashcards")) || [];
+let filteredCards = [];
+let current = 0;
+let showAnswer = false;
+let shuffle = false;
+let timerInterval;
+
+function saveCards() {
+  localStorage.setItem("flashcards", JSON.stringify(cards));
+}
+
+function addCard() {
+  const subject = subjectInput.value;
+  const chapter = chapterInput.value;
+  const question = questionInput.value;
+  const answer = answerInput.value;
+
+  if (subject && chapter && question && answer) {
+    cards.push({ subject, chapter, question, answer });
+    saveCards();
+    alert("Added!");
+    questionInput.value = "";
+    answerInput.value = "";
+  }
+}
+
+function applyFilter() {
+  const sub = filterSubject.value.toLowerCase();
+  const chap = filterChapter.value.toLowerCase();
+
+  filteredCards = cards.filter(c =>
+    c.subject.toLowerCase().includes(sub) &&
+    c.chapter.toLowerCase().includes(chap)
+  );
+
+  if (shuffle) filteredCards.sort(() => Math.random() - 0.5);
+
+  current = 0;
+  showAnswer = false;
+  displayCard();
+}
+
+function displayCard() {
+  if (filteredCards.length === 0) {
+    card.innerText = "No cards";
+    tag.innerText = "";
+    return;
+  }
+
+  const c = filteredCards[current];
+  card.innerText = showAnswer ? c.answer : c.question;
+  tag.innerText = c.subject + " → " + c.chapter;
+}
+
+function flipCard() {
+  showAnswer = !showAnswer;
+  displayCard();
+}
+
+function nextCard() {
+  if (!filteredCards.length) return;
+  current = (current + 1) % filteredCards.length;
+  showAnswer = false;
+  displayCard();
+}
+
+function prevCard() {
+  if (!filteredCards.length) return;
+  current = (current - 1 + filteredCards.length) % filteredCards.length;
+  showAnswer = false;
+  displayCard();
+}
+
+function toggleShuffle() {
+  shuffle = !shuffle;
+  alert("Shuffle " + (shuffle ? "ON" : "OFF"));
+}
+
+function startTimer() {
+  let time = 60;
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+    timer.innerText = "Time: " + time + "s";
+    time--;
+
+    if (time < 0) {
+      clearInterval(timerInterval);
+      alert("Time's up!");
+    }
+  }, 1000);
+}
+
+function importCSV() {
+  const file = csvFile.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const rows = e.target.result.split("\n").slice(1);
+
+    rows.forEach(row => {
+      const [subject, chapter, question, answer] = row.split(",");
+      if (subject && chapter && question && answer) {
+        cards.push({ subject, chapter, question, answer });
+      }
+    });
+
+    saveCards();
+    alert("Imported!");
+  };
+
+  reader.readAsText(file);
+}
+</script>
+
+</body>
+</html>
